@@ -26,29 +26,31 @@ public class IntentClassifier {
 
 	@PostMapping(value="/this", consumes="application/json", produces="text/plain")
 	public String s(@RequestBody Soln reques) throws Exception{
-		String sentences[] = reques.getEmail().split("[.]");
+		String sentences[] = reques.getEmail().split("[.\n] *");
 		HttpClient client = new DefaultHttpClient();
 		boolean help=false;
 		boolean issue=false;
 		Ret ret = new Ret();
 		for(String str:sentences) {
-			URL url = new URL("https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/69e7d9c1-eb8b-4f01-988f-ce610880fff3?subscription-key=ee37480989984715b1bc22d3df6756ad&timezoneOffset=-360&q="+URLEncoder.encode(str,"UTF-8"));
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setRequestMethod("GET");
-			if (conn.getResponseCode() != 200) {
-				throw new RuntimeException("Failed : HTTP error code : "
-						+ conn.getResponseCode());
+			if(!str.equals("")) {
+				URL url = new URL("https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/69e7d9c1-eb8b-4f01-988f-ce610880fff3?subscription-key=ee37480989984715b1bc22d3df6756ad&timezoneOffset=-360&q="+URLEncoder.encode(str,"UTF-8"));
+				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+				conn.setRequestMethod("GET");
+				if (conn.getResponseCode() != 200) {
+					throw new RuntimeException("Failed : HTTP error code : "
+							+ conn.getResponseCode());
+				}
+				BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
+				br.readLine();
+				br.readLine();
+				br.readLine();
+				String[] st = br.readLine().split("\"");
+				if(st[3].equals("Help")) {
+					return "Raise a ticket";
+				}
+				if(st[3].equals("Issue"))
+					issue = true;
 			}
-			BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
-			br.readLine();
-			br.readLine();
-			br.readLine();
-			String[] st = br.readLine().split("\"");
-			if(st[3].equals("Help")) {
-				return "Raise a ticket";
-			}
-			if(st[3].equals("Issue"))
-				issue = true;
 		}
 		if(issue) {
 			return "Manual intervention required";
